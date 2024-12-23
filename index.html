@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cash Clicker game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            text-align: center;
+            background-color: #f0f0f0;
+        }
+        
+        #cash-display {
+            font-size: 24px;
+            margin: 20px;
+            color: #2ecc71;
+        }
+        
+        #click-area {
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+        }
+        
+        #click-area:active {
+            transform: scale(0.95);
+        }
+        
+        .upgrade-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .upgrade {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .floating-text {
+            position: absolute;
+            animation: float-up 1s ease-out;
+            pointer-events: none;
+            color: #27ae60;
+            font-weight: bold;
+        }
+        
+        @keyframes float-up {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Cash Clicker Game</h1>
+    <div id="cash-display">$0</div>
+    
+    <div id="click-area">
+        <img src="cash.webp" alt="cash" />
+    </div>
+    
+    <div class="upgrade-container">
+        <div class="upgrade">
+            <h3>Click Multiplier</h3>
+            <p>Current: <span id="multiplier-level">1</span>x</p>
+            <p>Cost: $<span id="multiplier-cost">10</span></p>
+            <button onclick="buyMultiplier()">Upgrade</button>
+        </div>
+        
+        <div class="upgrade">
+            <h3>Auto Clicker</h3>
+            <p>Current: <span id="autoclicker-level">0</span>/sec</p>
+            <p>Cost: $<span id="autoclicker-cost">50</span></p>
+            <button onclick="buyAutoClicker()">Buy</button>
+        </div>
+    </div>
+    
+    <button onclick="saveGame()">Save Game</button>
+    <button onclick="resetGame()">Reset Game</button>
+
+    <script>
+        let state = {
+            cash: 0,
+            multiplier: 1,
+            multiplierCost: 10,
+            autoClickers: 0,
+            autoClickerCost: 50
+        };
+
+        const savedState = localStorage.getItem('progress');
+        if (savedState) {
+            state = JSON.parse(savedState);
+            updateDisplay();
+        }
+
+        function formatcash(amount) {
+            return amount.toLocaleString('en-US', { 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            });
+        }
+
+        function updateDisplay() {
+            document.getElementById('cash-display').textContent = `$${formatcash(state.cash)}`;
+            document.getElementById('multiplier-level').textContent = state.multiplier;
+            document.getElementById('multiplier-cost').textContent = formatcash(state.multiplierCost);
+            document.getElementById('autoclicker-level').textContent = state.autoClickers;
+            document.getElementById('autoclicker-cost').textContent = formatcash(state.autoClickerCost);
+        }
+
+        function createFloatingText(amount) {
+            const text = document.createElement('div');
+            text.textContent = `+$${formatcash(amount)}`;
+            text.className = 'floating-text';
+            
+            const clickArea = document.getElementById('click-area');
+            const rect = clickArea.getBoundingClientRect();
+            
+            text.style.left = `${rect.left + Math.random() * rect.width}px`;
+            text.style.top = `${rect.top + Math.random() * rect.height}px`;
+            
+            document.body.appendChild(text);
+            
+            setTimeout(() => {
+                document.body.removeChild(text);
+            }, 1000);
+        }
+
+        document.getElementById('click-area').addEventListener('click', () => {
+            const amount = state.multiplier;
+            state.cash += amount;
+            createFloatingText(amount);
+            updateDisplay();
+        });
+
+        function buyMultiplier() {
+            if (state.cash >= state.multiplierCost) {
+                state.cash -= state.multiplierCost;
+                state.multiplier++;
+                state.multiplierCost = Math.floor(state.multiplierCost * 1.5);
+                updateDisplay();
+            }
+        }
+
+        function buyAutoClicker() {
+            if (state.cash >= state.autoClickerCost) {
+                state.cash -= state.autoClickerCost;
+                state.autoClickers++;
+                state.autoClickerCost = Math.floor(state.autoClickerCost * 1.5);
+                updateDisplay();
+            }
+        }
+
+        function saveGame() {
+            localStorage.setItem('progress', JSON.stringify(state));
+            alert('Game saved!');
+        }
+
+        function resetGame() {
+            if (confirm('Are you sure you want to reset game? This will steal all of your cash!')) {
+                localStorage.removeItem('progress');
+                state = {
+                    cash: 0,
+                    multiplier: 1,
+                    multiplierCost: 10,
+                    autoClickers: 0,
+                    autoClickerCost: 50
+                };
+                updateDisplay();
+            }
+        }
+
+        setInterval(() => {
+            if (state.autoClickers > 0) {
+                const amount = state.autoClickers * state.multiplier;
+                state.cash += amount;
+                updateDisplay();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>
